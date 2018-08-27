@@ -25,7 +25,6 @@ use std::marker::PhantomData;
 use std::rc::Rc;
 use std::sync::atomic::Ordering::{AcqRel, Acquire};
 use std::sync::Arc;
-use std::thread;
 use std::time::{Duration, Instant};
 
 /// Thread worker
@@ -217,7 +216,7 @@ impl Worker {
     ///
     /// This function blocks until the worker is shutting down.
     pub fn run(&self) {
-        const MAX_SPINS: usize = 3;
+        const MAX_SPINS: usize = 63;
         const LIGHT_SLEEP_INTERVAL: usize = 32;
 
         // Get the notifier.
@@ -261,9 +260,8 @@ impl Worker {
 
             spin_cnt += 1;
 
-            // Yield the thread several times before it actually goes to sleep.
-            if spin_cnt <= MAX_SPINS {
-                thread::yield_now();
+            // Spin the thread several times before it actually goes to sleep.
+            if spin_cnt & MAX_SPINS == spin_cnt {
                 continue;
             }
 
