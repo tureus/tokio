@@ -25,6 +25,7 @@ use std::marker::PhantomData;
 use std::rc::Rc;
 use std::sync::atomic::Ordering::{AcqRel, Acquire};
 use std::sync::Arc;
+#[cfg(not(target_os = "macos"))]
 use std::thread;
 use std::time::{Duration, Instant};
 
@@ -263,7 +264,12 @@ impl Worker {
 
             // Yield the thread several times before it actually goes to sleep.
             if spin_cnt <= MAX_SPINS {
-                thread::yield_now();
+                // On macOS, yielding to the OS scheduler here appears to cause
+                // workers to occasionally fail to wake. However, on other
+                // systems,it improves performance.
+                #[cfg(not(target_os = "macos"))] {
+                    thread::yield_now();
+                }
                 continue;
             }
 
